@@ -123,6 +123,39 @@ class FoldTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             Fold({"fee_rule": "flat"})
 
+    def test_a_discount_of_at_least_the_fee_rate_replaces_the_fee(self):
+        fold = self.fold()                                      # B buys 4% under the close from throwaway key A
+        fold.sweep(1, "100.00", "100.00", [A, B, C], [trade("gift", A, "sell", "10", "96.00", B),
+                                                      trade("fair", A, "sell", "10", "100.00", C)])
+        scores = {r["key"]: Decimal(r["score"]) for r in fold.final("100.00")["standings"]}
+        self.assertEqual(scores[B], 0)                          # same position as C, but no 1% fee
+        self.assertEqual(scores[C], Decimal("-10"))             # a trade at the close pays 1%
+
+    def test_clawback_lets_a_key_flip_for_free_against_throwaway_keys(self):
+        flips = [trade("long", B, "sell", "10", "99.00", A),     # A buys 1% under the close
+                 trade("short", C, "buy", "20", "101.02", A)]    # A sells 1% over it: long 10 to short 10
+        free = self.fold()
+        free.sweep(1, "100.00", "100.00", [A, B, C], flips)
+        free_scores = {r["key"]: Decimal(r["score"]) for r in free.final("100.00")["standings"]}
+        self.assertEqual(free_scores[A], 0)                     # two trades, a flip, and not one fee
+        plus = self.fold(fee_rule="clawback_plus")
+        plus.sweep(1, "100.00", "100.00", [A, B, C], [dict(t) for t in flips])
+        plus_scores = {r["key"]: Decimal(r["score"]) for r in plus.final("100.00")["standings"]}
+        self.assertEqual(plus_scores[A], Decimal("-30.104"))    # 1% of 990 plus 1% of 2,020.40
+        self.assertEqual(sum(plus_scores.values()) + plus.fees, 0)
+
+    def test_clawback_plus_charges_the_fee_on_top_of_the_gap(self):
+        fold = self.fold(fee_rule="clawback_plus")
+        result = fold.sweep(1, "100.00", "100.00", [A, B], [trade("gift", A, "sell", "10", "96.00", B),
+                                                            trade("fair", A, "sell", "10", "100.00", B)])
+        self.assertEqual(self.fees(result, 0), ("9.6000", "49.6000"))   # the buyer: 1% of 960 plus the 40.00 gap
+        self.assertEqual(self.fees(result, 1), ("10.0000", "10.0000"))  # at the close nothing changes
+
+    def test_clawback_plus_keeps_the_sample_season_zero_sum(self):
+        lines = (ROOT / "examples/sample-season.jsonl").read_text().splitlines()
+        result = replay(lines, {**contest_config(), "fee_rule": "clawback_plus"})
+        self.assertEqual(Decimal(result["final"]["zero_sum"]), 0)
+
     def test_ties_share_the_places_they_span(self):
         fold = self.fold()
         fold.sweep(1, "100.00", "100.00", [A, B, C], [])

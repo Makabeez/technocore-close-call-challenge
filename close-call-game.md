@@ -342,8 +342,9 @@ class Fold:
         self.min_qty = Decimal(cfg["min_qty"])
         self.window = Decimal(cfg["limit_window"])
         self.fee_rate = Decimal(cfg["fee_rate"])
-        if cfg["fee_rule"] != "clawback":
-            raise ValueError("config: fee_rule must be 'clawback'")
+        if cfg["fee_rule"] not in ("clawback", "clawback_plus"):
+            raise ValueError("config: fee_rule must be 'clawback' or 'clawback_plus'")
+        self.fee_rule = cfg["fee_rule"]
         self.lock = int(cfg["lock_sweep"])
         self.places = int(cfg["prize_places"])
         self.accounts: dict[str, Account] = {}
@@ -355,10 +356,14 @@ class Fold:
 
     def side_fees(self, side: int, qty: Decimal, px: Decimal, close: Decimal) -> tuple[Decimal, Decimal]:
         """(maker's fee, taker's fee) for a maker on `side`. Each pays the fee rate on the trade's value;
-        the one that got a better price than the sweep's close pays that gap back instead, if it is more."""
+        the one that got a better price than the sweep's close pays that gap back instead, if it is more.
+        Under "clawback_plus" it pays the gap back on top of the fee, so a discount never pays for the fee."""
         base = self.fee_rate * qty * px
         gap = (close - px) * qty                  # above zero: the buyer paid less than the close
-        buyer, seller = max(base, gap), max(base, -gap)
+        if self.fee_rule == "clawback_plus":
+            buyer, seller = base + max(gap, Decimal(0)), base + max(-gap, Decimal(0))
+        else:
+            buyer, seller = max(base, gap), max(base, -gap)
         return (buyer, seller) if side > 0 else (seller, buyer)
 
     def seed(self, px: str) -> None:

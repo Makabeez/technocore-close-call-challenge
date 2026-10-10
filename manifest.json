@@ -32,13 +32,13 @@
       "url": "README.md"
     },
     "close-call-game.md": {
-      "bytes": 26668,
-      "sha256": "3dc13bfc482707d44a1a26db080364a96b38f0ae16516e345ccd314e183d5a7f",
+      "bytes": 27007,
+      "sha256": "e2309565e83b4680bc1aac499f019c1e658dd6ac4a8e3189f775bf1fb807b158",
       "url": "close-call-game.md"
     },
     "close_call_fold.py": {
-      "bytes": 11754,
-      "sha256": "19e13cd15dd4e9078b608a94776947bb52bba86367446d0a405c0b05c85173d4",
+      "bytes": 12093,
+      "sha256": "8d1c7805849b23b720d2ab6295d26ae03407af81cf244a07e4674eba478ba494",
       "url": "close_call_fold.py"
     },
     "contest.json": {
@@ -67,8 +67,8 @@
       "url": "scripts/verify.py"
     },
     "tests/test_fold.py": {
-      "bytes": 7475,
-      "sha256": "8771116f3a23eea46ca2a5dae2424f3b6ab78f9979649eb63ea83b88b5560d2a",
+      "bytes": 9945,
+      "sha256": "f0991803d3d848504821b17d007a21c3936612ad1986a86245c4d5d8bc449f6e",
       "url": "tests/test_fold.py"
     },
     "tests/test_package.py": {
